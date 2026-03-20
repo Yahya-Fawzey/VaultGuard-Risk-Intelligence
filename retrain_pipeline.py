@@ -5,7 +5,7 @@ from src.modeling.train_model import run_training
 from src.modeling.evaluate import run_evaluation
 
 def setup_developer_backend():
-    print("🚀 STARTING DEVELOPER PIPELINE 🚀\n")
+    print(" STARTING DEVELOPER PIPELINE \n")
     print("="*50)
 
     print("STEP 1: Loading raw training data...")
@@ -23,7 +23,7 @@ def setup_developer_backend():
     print("STEP 4: Running final evaluation on the 20% holdout set...")
     run_evaluation()
 
-    print("\n✅ PIPELINE COMPLETE! The backend is fully set up.")
+    print("\n PIPELINE COMPLETE! The backend is fully set up.")
 
 if __name__ == "__main__":
     setup_developer_backend()
