@@ -132,4 +132,4 @@ python retrain_pipeline.py
 
 ---
 ## Video Showcase
-[![Watch the video](https://img.youtube.com/vi/M4GAlfsSc4o/maxresdefault.jpg)](https://youtu.be/M4GAlfsSc4o)
+
