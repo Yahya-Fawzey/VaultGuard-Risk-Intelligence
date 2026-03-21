@@ -52,6 +52,16 @@ Each prediction includes:
 
 ---
 
+## ✨ Features
+
+### 🔢 Single Entry Mode
+Input an individual's financial profile manually through the sidebar — sliders and input fields guide the user through each risk indicator. Instantly returns a risk classification, probability score, key risk drivers, and a recommended action.
+
+### 📁 Batch CSV Mode
+Upload a CSV file containing multiple records at once. VaultGuard processes every row through the same pipeline and returns a full results table with risk classifications and scores for each entry — ideal for bulk screening.
+
+---
+
 ## 🎬 Video Showcase
 https://github.com/user-attachments/assets/d7edb28c-f017-4f8a-821f-df0170606d74
 
