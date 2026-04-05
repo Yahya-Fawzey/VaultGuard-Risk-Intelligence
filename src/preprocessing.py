@@ -1,21 +1,42 @@
 import pandas as pd
 import os
+import json
 
-def preprocess_training_data(df):
+
+MEDIANS_PATH = "model/training_medians.json"
+
+def preprocess_training_data(df, is_training=True, filename="processed_train.csv"):
     """
-    DEVELOPER SIDE: Cleans data dynamically, applies feature engineering, 
-    and SAVES the cleaned CSV to data/processed/training_data/
+    DEVELOPER SIDE: Cleans data. If is_training=True, it learns and saves the medians.
+    If is_training=False, it loads the medians to prevent leakage.
     """
     df = df.copy()
     
     if 'Unnamed: 0' in df.columns:
         df = df.drop(columns=['Unnamed: 0'])
         
-    # DYNAMIC MEDIANS Calculated straight from the training data
-    df['MonthlyIncome'] = df['MonthlyIncome'].fillna(df['MonthlyIncome'].median())
-    df['NumberOfDependents'] = df['NumberOfDependents'].fillna(df['NumberOfDependents'].median())
+    os.makedirs(os.path.dirname(MEDIANS_PATH), exist_ok=True)
+        
+    if is_training:
+        # 1 Calculating medians ONLY from the training split
+        income_median = float(df['MonthlyIncome'].median())
+        dep_median = float(df['NumberOfDependents'].median())
+        
+        # 2 Saving them to a file for the test set and Streamlit to use
+        with open(MEDIANS_PATH, 'w') as f:
+            json.dump({'MonthlyIncome': income_median, 'NumberOfDependents': dep_median}, f)
+    else:
+        # 3 Loading the saved medians for the test set
+        with open(MEDIANS_PATH, 'r') as f:
+            medians = json.load(f)
+        income_median = medians['MonthlyIncome']
+        dep_median = medians['NumberOfDependents']
+
+    # Applying the medians
+    df['MonthlyIncome'] = df['MonthlyIncome'].fillna(income_median)
+    df['NumberOfDependents'] = df['NumberOfDependents'].fillna(dep_median)
     
-    # FEATURE ENGINEERING
+    # Feature engineering
     df['total_late_payments'] = (
         df['NumberOfTimes90DaysLate'] + 
         df['NumberOfTime30-59DaysPastDueNotWorse'] + 
@@ -24,36 +45,42 @@ def preprocess_training_data(df):
     df['debt_income_ratio'] = df['DebtRatio'] / (df['MonthlyIncome'] + 1)
     df['credit_pressure'] = df['RevolvingUtilizationOfUnsecuredLines'] * df['DebtRatio']
     
-    # SAVING PHYSICAL CSV TO PROCESSED FOLDER
+    # Saving the cleaned data to a new CSV file in the processed folder
     output_dir = "data/processed/training_data"
     os.makedirs(output_dir, exist_ok=True)
-    output_path = f"{output_dir}/processed_train.csv"
+    output_path = f"{output_dir}/{filename}"
     
     df.to_csv(output_path, index=False)
-    print(f"Success! Cleaned training data saved to {output_path}")
+    print(f"Success! Cleaned data saved to {output_path}")
     
     return df
 
 
 def preprocess_new_data(df, filename="processed_uploaded.csv"):
     """
-    CLIENT SIDE: Cleans uploaded data dynamically, applies feature engineering,
-    and SAVES the cleaned CSV to data/processed/uploaded_data/
+    CLIENT SIDE: Streamlit uses this. It loads the saved medians from the training 
+    phase to ensure zero leakage when evaluating new customers.
     """
     df = df.copy()
     
     if 'Unnamed: 0' in df.columns:
         df = df.drop(columns=['Unnamed: 0'])
         
-    # DYNAMIC MEDIANS 
+    # Loading training median
+    try:
+        with open(MEDIANS_PATH, 'r') as f:
+            medians = json.load(f)
+        income_median = medians['MonthlyIncome']
+        dep_median = medians['NumberOfDependents']
+    except FileNotFoundError:
+        # Fallback just in case someone deletes the file
+        income_median = 0
+        dep_median = 0
+        
+    df['MonthlyIncome'] = df['MonthlyIncome'].fillna(income_median)
+    df['NumberOfDependents'] = df['NumberOfDependents'].fillna(dep_median)
     
-    income_median = df['MonthlyIncome'].median()
-    df['MonthlyIncome'] = df['MonthlyIncome'].fillna(income_median if not pd.isna(income_median) else 0)
-    
-    dep_median = df['NumberOfDependents'].median()
-    df['NumberOfDependents'] = df['NumberOfDependents'].fillna(dep_median if not pd.isna(dep_median) else 0)
-    
-    # FEATURE ENGINEERING
+    # Feature engineering
     df['total_late_payments'] = (
         df['NumberOfTimes90DaysLate'] + 
         df['NumberOfTime30-59DaysPastDueNotWorse'] + 
@@ -62,12 +89,11 @@ def preprocess_new_data(df, filename="processed_uploaded.csv"):
     df['debt_income_ratio'] = df['DebtRatio'] / (df['MonthlyIncome'] + 1)
     df['credit_pressure'] = df['RevolvingUtilizationOfUnsecuredLines'] * df['DebtRatio']
     
-    # SAVING PHYSICAL CSV TO PROCESSED FOLDER
+    # Saving the cleaned data to a new CSV file in the processed folder
     output_dir = "data/processed/uploaded_data"
     os.makedirs(output_dir, exist_ok=True)
     output_path = f"{output_dir}/{filename}"
     
     df.to_csv(output_path, index=False)
-    print(f"Success! Cleaned uploaded data saved to {output_path}")
     
     return df
